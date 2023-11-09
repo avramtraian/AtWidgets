@@ -2,6 +2,21 @@
 # SPDX-License-Identifier: BSD-3-Clause.
 
 set(AT_SOURCE_FILES
+        Assertions.cpp
+        Assertions.h
+        CoreDefines.h
+        CoreTypes.h
+        Format.cpp
+        Format.h
+        Log.cpp
+        Log.h
+        MemoryOperations.cpp
+        MemoryOperations.h
+        String.cpp
+        String.h
+        StringView.cpp
+        StringView.h
+        Vector.h
 )
 
 if (BUILD_AS_STATIC_LIBRARY)
