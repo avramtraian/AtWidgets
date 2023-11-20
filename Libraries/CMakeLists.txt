@@ -7,6 +7,7 @@ function(add_widgets_library library_name macro_prefix)
     else ()
         add_library(${library_name} SHARED ${ARGN})
         target_compile_definitions(${library_name} PUBLIC "${macro_prefix}_SHARED_LIBRARY")
+        target_compile_definitions(${library_name} PRIVATE "${macro_prefix}_BUILD_SHARED_LIBRARY")
     endif ()
 
     set_target_properties(${library_name} PROPERTIES PREFIX "ATW-")
