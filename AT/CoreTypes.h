@@ -6,7 +6,9 @@
 #pragma once
 
 #include "AT/CoreDefines.h"
-#include <stdint.h>
+
+#include <cstdint>
+#include <new>
 #include <type_traits>
 
 #define AT_MAKE_NONCOPYABLE(type) \
@@ -54,6 +56,8 @@ using ReadWriteByte = u8;
 using ReadonlyBytes = ReadonlyByte*;
 using WriteonlyBytes = WriteonlyByte*;
 using ReadWriteBytes = ReadWriteByte*;
+
+using NullptrType = nullptr_t;
 
 constexpr usize InvalidSize = static_cast<usize>(-1);
 
