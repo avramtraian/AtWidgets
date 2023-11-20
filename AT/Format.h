@@ -67,8 +67,7 @@ struct Formatter<u8>
 template<>
 struct Formatter<u16>
 {
-    static void
-    format(FormatBuilder& builder, const FormatBuilder::Specifier&, const u16& value)
+    static void format(FormatBuilder& builder, const FormatBuilder::Specifier&, const u16& value)
     {
         builder.push_integer(static_cast<u64>(value), IsNegative::No);
     }
@@ -76,8 +75,7 @@ struct Formatter<u16>
 template<>
 struct Formatter<u32>
 {
-    static void
-    format(FormatBuilder& builder, const FormatBuilder::Specifier&, const u32& value)
+    static void format(FormatBuilder& builder, const FormatBuilder::Specifier&, const u32& value)
     {
         builder.push_integer(static_cast<u64>(value), IsNegative::No);
     }
@@ -85,8 +83,7 @@ struct Formatter<u32>
 template<>
 struct Formatter<u64>
 {
-    static void
-    format(FormatBuilder& builder, const FormatBuilder::Specifier&, const u64& value)
+    static void format(FormatBuilder& builder, const FormatBuilder::Specifier&, const u64& value)
     {
         builder.push_integer(static_cast<u64>(value), IsNegative::No);
     }
@@ -99,47 +96,40 @@ struct Formatter<i8>
     {
         const bool is_negative = value < 0;
         builder.push_integer(
-            static_cast<u64>(is_negative ? -value : value),
-            is_negative ? IsNegative::Yes : IsNegative::No
+            static_cast<u64>(is_negative ? -value : value), is_negative ? IsNegative::Yes : IsNegative::No
         );
     }
 };
 template<>
 struct Formatter<i16>
 {
-    static void
-    format(FormatBuilder& builder, const FormatBuilder::Specifier&, const i16& value)
+    static void format(FormatBuilder& builder, const FormatBuilder::Specifier&, const i16& value)
     {
         const bool is_negative = value < 0;
         builder.push_integer(
-            static_cast<u64>(is_negative ? -value : value),
-            is_negative ? IsNegative::Yes : IsNegative::No
+            static_cast<u64>(is_negative ? -value : value), is_negative ? IsNegative::Yes : IsNegative::No
         );
     }
 };
 template<>
 struct Formatter<i32>
 {
-    static void
-    format(FormatBuilder& builder, const FormatBuilder::Specifier&, const i32& value)
+    static void format(FormatBuilder& builder, const FormatBuilder::Specifier&, const i32& value)
     {
         const bool is_negative = value < 0;
         builder.push_integer(
-            static_cast<u64>(is_negative ? -value : value),
-            is_negative ? IsNegative::Yes : IsNegative::No
+            static_cast<u64>(is_negative ? -value : value), is_negative ? IsNegative::Yes : IsNegative::No
         );
     }
 };
 template<>
 struct Formatter<i64>
 {
-    static void
-    format(FormatBuilder& builder, const FormatBuilder::Specifier&, const i64& value)
+    static void format(FormatBuilder& builder, const FormatBuilder::Specifier&, const i64& value)
     {
         const bool is_negative = value < 0;
         builder.push_integer(
-            static_cast<u64>(is_negative ? -value : value),
-            is_negative ? IsNegative::Yes : IsNegative::No
+            static_cast<u64>(is_negative ? -value : value), is_negative ? IsNegative::Yes : IsNegative::No
         );
     }
 };
@@ -147,8 +137,7 @@ struct Formatter<i64>
 template<>
 struct Formatter<String>
 {
-    static void
-    format(FormatBuilder& builder, const FormatBuilder::Specifier&, const String& value)
+    static void format(FormatBuilder& builder, const FormatBuilder::Specifier&, const String& value)
     {
         builder.push_string(value.to_view());
     }
@@ -156,8 +145,7 @@ struct Formatter<String>
 template<>
 struct Formatter<StringView>
 {
-    static void
-    format(FormatBuilder& builder, const FormatBuilder::Specifier&, const StringView& value)
+    static void format(FormatBuilder& builder, const FormatBuilder::Specifier&, const StringView& value)
     {
         builder.push_string(value);
     }

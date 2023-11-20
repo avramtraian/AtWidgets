@@ -41,15 +41,9 @@ public:
     AT_API ~String();
 
 public:
-    NODISCARD ALWAYS_INLINE StringView to_view() const
-    {
-        return StringView::from_utf8(characters(), m_byte_count - 1);
-    }
+    NODISCARD ALWAYS_INLINE StringView to_view() const { return StringView::from_utf8(characters(), m_byte_count - 1); }
 
-    NODISCARD ALWAYS_INLINE const char* characters() const
-    {
-        return reinterpret_cast<const char*>(bytes());
-    }
+    NODISCARD ALWAYS_INLINE const char* characters() const { return reinterpret_cast<const char*>(bytes()); }
     NODISCARD ALWAYS_INLINE usize byte_count() const { return m_byte_count; }
 
     NODISCARD ALWAYS_INLINE ReadonlyBytes bytes() const
@@ -64,14 +58,8 @@ public:
                                    : reinterpret_cast<ReadWriteBytes>(m_inline_characters);
     }
 
-    NODISCARD ALWAYS_INLINE bool is_stored_inline() const
-    {
-        return (m_byte_count <= InlineCapacity);
-    }
-    NODISCARD ALWAYS_INLINE bool is_stored_on_heap() const
-    {
-        return (m_byte_count > InlineCapacity);
-    }
+    NODISCARD ALWAYS_INLINE bool is_stored_inline() const { return (m_byte_count <= InlineCapacity); }
+    NODISCARD ALWAYS_INLINE bool is_stored_on_heap() const { return (m_byte_count > InlineCapacity); }
 
 public:
     // IMPORTANT: Sets the string characters pointer to the specified value. This function is
@@ -83,8 +71,7 @@ public:
     // IMPORTANT: Copies the characters from the provided string to the inline buffer.
     // No null-termination character will be inserted.
     // The lifetime of the passed buffer will not be altered in any way.
-    AT_DANGEROUS AT_API void
-    set_internal_inline_buffer(const char* inline_characters, usize byte_count);
+    AT_DANGEROUS AT_API void set_internal_inline_buffer(const char* inline_characters, usize byte_count);
 
 private:
     NODISCARD static char* allocate_memory(usize byte_count);

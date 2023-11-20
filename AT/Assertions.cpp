@@ -19,8 +19,7 @@ void verification_failed(
     dbgln("    ON LINE:         {}"sv, line);
 
     // TODO: Call the platform API in order to open a popup window that will display the error
-    // message.
-    //       This feature requires extensive access to the platform layer.
+    // message. This feature requires extensive access to the platform layer.
 }
 
 } // namespace AT
