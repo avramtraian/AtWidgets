@@ -55,16 +55,20 @@
     #error Unsupported/Unknown compiler!
 #endif // Any compiler.
 
+#if AT_COMPILER_MSVC
+    #define AT_API_ATTRIBUTE_EXPORT __declspec(dllexport)
+    #define AT_API_ATTRIBUTE_IMPORT __declspec(dllimport)
+#else
+    #define AT_API_ATTRIBUTE_EXPORT __attribute__((visibility("default")))
+    #define AT_API_ATTRIBUTE_IMPORT __attribute__((visibility("default")))
+#endif // AT_COMPILER_MSVC
+
 #ifdef AT_SHARED_LIBRARY
-    #if AT_COMPILER_MSVC
-        #ifdef AT_BUILD_SHARED_LIBRARY
-            #define AT_API __declspec(dllexport)
-        #else
-            #define AT_API __declspec(dllimport)
-        #endif // AT_BUILD_SHARED_LIBRARY
+    #ifdef AT_BUILD_SHARED_LIBRARY
+        #define AT_API AT_API_ATTRIBUTE_EXPORT
     #else
-        #define AT_API __attribute__((visibility("default")))
-    #endif // AT_COMPILER_MSVC
+        #define AT_API AT_API_ATTRIBUTE_IMPORT
+    #endif // AT_BUILD_SHARED_LIBRARY
 #else
     #define AT_API // Define as nothing.
 #endif // AT_SHARED_LIBRARY
@@ -83,5 +87,11 @@
 #define MAYBE_UNUSED [[maybe_unused]]
 #define AT_DEPRECATED
 #define AT_DANGEROUS
+
+#define AT_STRINGIFY_IMPL(x)      #x
+#define AT_CONCATENATE_IMPL(x, y) x##y
+
+#define STRINGIFY(x)      AT_STRINGIFY_IMPL(x)
+#define CONCATENATE(x, y) AT_CONCATENATE_IMPL(x, y)
 
 #define AT_INCLUDE_GLOBALLY 1
