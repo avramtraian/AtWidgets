@@ -141,6 +141,28 @@ public:
         return m_elements[m_count - 1];
     }
 
+    ALWAYS_INLINE void remove_range(usize index_to_remove_from, usize range_count)
+    {
+        const usize next_index = index_to_remove_from + range_count;
+        VERIFY(next_index <= m_count);
+
+        // Delete the elements located in the range.
+        for (usize index = index_to_remove_from; index < next_index; ++index)
+            m_elements[index].~T();
+
+        // Shift the remaining elements into the deleted range.
+        for (usize index = next_index; index < m_count; ++index)
+        {
+            new (m_elements + index - range_count) T(move(m_elements[index]));
+            m_elements[index].~T();
+        }
+
+        m_count -= range_count;
+    }
+
+    /// Wrapper around Vector::remove_range().
+    ALWAYS_INLINE void remove(usize index_to_remove) { remove_range(index_to_remove, 1); }
+
 public:
     ALWAYS_INLINE ErrorOr<T&> try_push_uninitialized(usize count = 1)
     {
@@ -159,6 +181,54 @@ public:
 
     ALWAYS_INLINE ErrorOr<T&> try_push_back(const T& value) { return try_emplace_back(value); }
     ALWAYS_INLINE ErrorOr<T&> try_push_back(T&& value) { return try_emplace_back(move(value)); }
+
+    ALWAYS_INLINE ErrorOr<void> try_insert_range(usize slot_index, Span<const T> range)
+    {
+        // Ensure that the vector can store the new element count.
+        reallocate_if_required(m_count + range.count());
+
+        if (slot_index < m_count)
+        {
+            // Shift the elements after the slot_index to the right by range.count() slots.
+            unsafe_shift_elements_right(slot_index, range.count());
+        }
+
+        // Insert the elements, by copying them to the newly created slots.
+        for (usize index = 0; index < range.count(); ++index)
+            new (m_elements + slot_index + index) T(range[index]);
+
+        return {};
+    }
+
+    ALWAYS_INLINE ErrorOr<void> try_insert_range_move(usize slot_index, Span<T> range)
+    {
+        // Ensure that the vector can store the new element count.
+        reallocate_if_required(m_count + range.count());
+
+        if (slot_index < m_count)
+        {
+            // Shift the elements after the slot_index to the right by range.count() slots.
+            unsafe_shift_elements_right(slot_index, range.count());
+        }
+
+        // Insert the elements, by copying them to the newly created slots.
+        for (usize index = 0; index < range.count(); ++index)
+            new (m_elements + slot_index + index) T(move(range[index]));
+
+        return {};
+    }
+
+    ALWAYS_INLINE ErrorOr<T&> try_insert(usize slot_index, const T& element)
+    {
+        TRY(try_insert_range(slot_index, { &element, 1 }));
+        return m_elements[slot_index];
+    }
+
+    ALWAYS_INLINE ErrorOr<T&> try_insert(usize slot_index, T&& element)
+    {
+        TRY(try_insert_range_move(slot_index, { &element, 1 }));
+        return m_elements[slot_index];
+    }
 
 public:
     ALWAYS_INLINE void clear()
@@ -316,6 +386,20 @@ private:
             TRY(reallocate(required_capacity));
 
         return {};
+    }
+
+private:
+    AT_DANGEROUS ALWAYS_INLINE void unsafe_shift_elements_right(usize offset, usize count)
+    {
+        VERIFY(offset < m_count);
+        VERIFY(m_capacity >= m_count + count);
+
+        for (usize index = 1; index <= m_count - offset; ++index)
+        {
+            const usize source_index = m_count - index;
+            new (m_elements + source_index + count) T(move(m_elements[source_index]));
+            m_elements[source_index].~T();
+        }
     }
 
 private:
