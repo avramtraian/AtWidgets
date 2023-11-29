@@ -7,9 +7,8 @@
 
 #include "AT/Assertions.h"
 #include "AT/CoreTypes.h"
+#include "AT/Error.h"
 #include "AT/Span.h"
-
-#include <new>
 
 namespace AT
 {
