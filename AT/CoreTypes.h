@@ -269,6 +269,9 @@ static constexpr bool IsVolatile = Detail::IsVolatile<T>;
 template<typename T, typename Q>
 static constexpr bool IsSame = std::is_same_v<T, Q>;
 
+template<typename Base, typename Derived>
+static constexpr bool IsBaseOf = std::is_base_of_v<Base, Derived>;
+
 //=============================================================================
 // Type traits.
 //=============================================================================
