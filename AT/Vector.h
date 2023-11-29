@@ -14,12 +14,12 @@
 namespace AT
 {
 
-//
-// Dynamic collection of elements that are stored contiguously in memory.
-// The type of elements stored in this container must provide the ability
-// to be moved in memory, as this operation is performed every time the
-// vector grows, shrinks or the elements are shifted.
-//
+///
+/// Dynamic collection of elements that are stored contiguously in memory.
+/// The type of elements stored in this container must provide the ability
+/// to be moved in memory, as this operation is performed every time the
+/// vector grows, shrinks or the elements are shifted.
+///
 template<typename T>
 class Vector
 {
@@ -28,6 +28,16 @@ public:
     using ConstIterator = const T*;
     using ReverseIterator = T*;
     using ReverseConstIterator = const T*;
+
+public:
+    ALWAYS_INLINE static ErrorOr<Vector<T>> try_create_with_initial_capacity(usize initial_capacity)
+    {
+        Vector<T> vector;
+        vector.m_count = 0;
+        vector.m_capacity = initial_capacity;
+        TRY_ASSIGN(vector.m_elements, allocate_memory(initial_capacity));
+        return vector;
+    }
 
 public:
     ALWAYS_INLINE Vector()
@@ -41,7 +51,7 @@ public:
         : m_count(other.m_count)
     {
         m_capacity = m_count;
-        m_elements = allocate_memory(m_capacity);
+        MUST_ASSIGN(m_elements, allocate_memory(m_capacity));
         copy_elements(m_elements, other.m_elements, m_count);
     }
 
@@ -64,9 +74,9 @@ public:
 
         if (other.m_count > m_capacity)
         {
-            release_memory(m_elements, m_capacity);
+            MUST(release_memory(m_elements, m_capacity));
             m_capacity = calculate_next_capacity(m_capacity, other.m_count);
-            m_elements = allocate_memory(m_capacity);
+            MUST_ASSIGN(m_elements, allocate_memory(m_capacity));
         }
 
         m_count = other.m_count;
@@ -81,7 +91,7 @@ public:
             return *this;
 
         clear();
-        release_memory(m_elements, m_capacity);
+        MUST(release_memory(m_elements, m_capacity));
 
         m_elements = other.m_elements;
         m_capacity = other.m_capacity;
@@ -97,7 +107,7 @@ public:
     ALWAYS_INLINE ~Vector()
     {
         clear();
-        release_memory(m_elements, m_capacity);
+        MUST(release_memory(m_elements, m_capacity));
     }
 
 public:
@@ -132,23 +142,23 @@ public:
     }
 
 public:
-    ALWAYS_INLINE T& push_uninitialized(usize count = 1)
+    ALWAYS_INLINE ErrorOr<T&> try_push_uninitialized(usize count = 1)
     {
-        reallocate_if_required(m_count + count);
+        TRY(reallocate_if_required(m_count + count));
         m_count += count;
         return m_elements[m_count - count];
     }
 
     template<typename... Args>
-    ALWAYS_INLINE T& emplace_back(Args&&... args)
+    ALWAYS_INLINE ErrorOr<T&> try_emplace_back(Args&&... args)
     {
-        T& slot = push_uninitialized(1);
+        TRY_ASSIGN(T & slot, try_push_uninitialized(1));
         new (&slot) T(forward<Args>(args)...);
         return slot;
     }
 
-    ALWAYS_INLINE T& push_back(const T& value) { return emplace_back(value); }
-    ALWAYS_INLINE T& push_back(T&& value) { return emplace_back(move(value)); }
+    ALWAYS_INLINE ErrorOr<T&> try_push_back(const T& value) { return try_emplace_back(value); }
+    ALWAYS_INLINE ErrorOr<T&> try_push_back(T&& value) { return try_emplace_back(move(value)); }
 
 public:
     ALWAYS_INLINE void clear()
@@ -161,15 +171,16 @@ public:
     ALWAYS_INLINE void clear_and_shrink()
     {
         clear();
-        release_memory(m_elements, m_capacity);
+        MUST(release_memory(m_elements, m_capacity));
         m_elements = nullptr;
         m_capacity = 0;
     }
 
-    ALWAYS_INLINE void shrink_to_fit()
+    ALWAYS_INLINE ErrorOr<void> try_shrink_to_fit()
     {
         if (m_count < m_capacity)
-            reallocate_to_fixed(m_count);
+            TRY(reallocate_to_fixed(m_count));
+        return {};
     }
 
     ALWAYS_INLINE void pop_back()
@@ -203,14 +214,8 @@ public:
     NODISCARD ALWAYS_INLINE usize available() { return m_capacity - m_count; }
     NODISCARD ALWAYS_INLINE usize element_size() const { return sizeof(T); }
 
-    NODISCARD ALWAYS_INLINE ReadWriteBytes bytes()
-    {
-        return reinterpret_cast<ReadWriteBytes>(m_elements);
-    }
-    NODISCARD ALWAYS_INLINE ReadonlyBytes bytes() const
-    {
-        return reinterpret_cast<ReadonlyBytes>(m_elements);
-    }
+    NODISCARD ALWAYS_INLINE ReadWriteBytes bytes() { return reinterpret_cast<ReadWriteBytes>(m_elements); }
+    NODISCARD ALWAYS_INLINE ReadonlyBytes bytes() const { return reinterpret_cast<ReadonlyBytes>(m_elements); }
     NODISCARD ALWAYS_INLINE usize byte_count() const { return m_count * sizeof(T); }
 
 public:
@@ -218,25 +223,16 @@ public:
     NODISCARD ALWAYS_INLINE Iterator end() { return Iterator(m_elements + m_count); }
 
     NODISCARD ALWAYS_INLINE ConstIterator begin() const { return ConstIterator(m_elements); }
-    NODISCARD ALWAYS_INLINE ConstIterator end() const
-    {
-        return ConstIterator(m_elements + m_count);
-    }
+    NODISCARD ALWAYS_INLINE ConstIterator end() const { return ConstIterator(m_elements + m_count); }
 
-    NODISCARD ALWAYS_INLINE ReverseIterator rbegin()
-    {
-        return ReverseIterator(m_elements + m_count - 1);
-    }
+    NODISCARD ALWAYS_INLINE ReverseIterator rbegin() { return ReverseIterator(m_elements + m_count - 1); }
     NODISCARD ALWAYS_INLINE ReverseIterator rend() { return ReverseIterator(m_elements - 1); }
 
     NODISCARD ALWAYS_INLINE ReverseConstIterator rbegin() const
     {
         return ReverseConstIterator(m_elements + m_count - 1);
     }
-    NODISCARD ALWAYS_INLINE ReverseConstIterator rend() const
-    {
-        return ReverseConstIterator(m_elements - 1);
-    }
+    NODISCARD ALWAYS_INLINE ReverseConstIterator rend() const { return ReverseConstIterator(m_elements - 1); }
 
 public:
     // IMPORTANT: This function causes a memory leak if not used correctly. Only intended for
@@ -251,17 +247,19 @@ public:
     }
 
 private:
-    NODISCARD ALWAYS_INLINE static T* allocate_memory(usize capacity)
+    NODISCARD ALWAYS_INLINE static ErrorOr<T*> allocate_memory(usize capacity)
     {
-        // TODO: Custom memory allocators.
         void* memory_block = ::operator new(capacity * sizeof(T));
+        if (!memory_block)
+            return Error::Code::OutOfMemory;
+
         return reinterpret_cast<T*>(memory_block);
     }
 
-    ALWAYS_INLINE static void release_memory(T* elements, usize capacity)
+    ALWAYS_INLINE static ErrorOr<void> release_memory(T* elements, usize capacity)
     {
-        // TODO: Custom memory allocators.
         ::operator delete(elements, capacity * sizeof(T));
+        return {};
     }
 
     ALWAYS_INLINE static void copy_elements(T* destination, const T* source, usize count)
@@ -292,28 +290,32 @@ private:
     }
 
 private:
-    ALWAYS_INLINE void reallocate_to_fixed(usize new_capacity)
+    ALWAYS_INLINE ErrorOr<void> reallocate_to_fixed(usize new_capacity)
     {
         VERIFY(new_capacity >= m_count);
 
-        T* new_elements = allocate_memory(new_capacity);
+        TRY_ASSIGN(T * new_elements, allocate_memory(new_capacity));
         move_elements(new_elements, m_elements, m_count);
-        release_memory(m_elements, m_capacity);
+        TRY(release_memory(m_elements, m_capacity));
 
         m_elements = new_elements;
         m_capacity = new_capacity;
+        return {};
     }
 
-    ALWAYS_INLINE void reallocate(usize required_capacity)
+    ALWAYS_INLINE ErrorOr<void> reallocate(usize required_capacity)
     {
         const usize new_capacity = calculate_next_capacity(m_capacity, required_capacity);
-        reallocate_to_fixed(new_capacity);
+        TRY(reallocate_to_fixed(new_capacity));
+        return {};
     }
 
-    ALWAYS_INLINE void reallocate_if_required(usize required_capacity)
+    ALWAYS_INLINE ErrorOr<void> reallocate_if_required(usize required_capacity)
     {
         if (required_capacity > m_capacity)
-            reallocate(required_capacity);
+            TRY(reallocate(required_capacity));
+
+        return {};
     }
 
 private:
