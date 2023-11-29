@@ -6,6 +6,8 @@ set(AT_SOURCE_FILES
         Assertions.h
         CoreDefines.h
         CoreTypes.h
+        Error.cpp
+        Error.h
         Format.cpp
         Format.h
         Log.cpp
