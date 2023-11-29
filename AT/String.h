@@ -6,6 +6,7 @@
 #pragma once
 
 #include "AT/CoreTypes.h"
+#include "AT/Error.h"
 #include "AT/StringView.h"
 
 namespace AT
@@ -74,8 +75,8 @@ public:
     AT_DANGEROUS AT_API void set_internal_inline_buffer(const char* inline_characters, usize byte_count);
 
 private:
-    NODISCARD static char* allocate_memory(usize byte_count);
-    static void release_memory(char* characters, usize byte_count);
+    NODISCARD static ErrorOr<char*> allocate_memory(usize byte_count);
+    static ErrorOr<void> release_memory(char* characters, usize byte_count);
 
 private:
     union

@@ -6,8 +6,6 @@
 #include "AT/String.h"
 #include "AT/MemoryOperations.h"
 
-#include <new>
-
 namespace AT
 {
 
@@ -20,7 +18,7 @@ String::String(const String& other)
     }
     else
     {
-        m_heap_characters = allocate_memory(m_byte_count);
+        MUST_ASSIGN(m_heap_characters, allocate_memory(m_byte_count));
         copy_memory(m_heap_characters, other.m_heap_characters, m_byte_count);
     }
 }
@@ -43,7 +41,7 @@ String::String(StringView view)
     }
     else
     {
-        m_heap_characters = allocate_memory(m_byte_count);
+        MUST_ASSIGN(m_heap_characters, allocate_memory(m_byte_count));
         copy_memory(m_heap_characters, view.characters(), view.byte_count());
         m_heap_characters[m_byte_count - 1] = 0;
     }
@@ -66,7 +64,7 @@ String& String::operator=(const String& other)
         }
         else
         {
-            m_heap_characters = allocate_memory(other.m_byte_count);
+            MUST_ASSIGN(m_heap_characters, allocate_memory(other.m_byte_count));
             destination_buffer = m_heap_characters;
             source_buffer = other.m_heap_characters;
         }
@@ -75,7 +73,7 @@ String& String::operator=(const String& other)
     {
         if (other.is_stored_inline())
         {
-            release_memory(m_heap_characters, m_byte_count);
+            MUST(release_memory(m_heap_characters, m_byte_count));
             destination_buffer = m_inline_characters;
             source_buffer = other.m_inline_characters;
         }
@@ -83,8 +81,8 @@ String& String::operator=(const String& other)
         {
             if (m_byte_count != other.m_byte_count)
             {
-                release_memory(m_heap_characters, m_byte_count);
-                m_heap_characters = allocate_memory(other.m_byte_count);
+                MUST(release_memory(m_heap_characters, m_byte_count));
+                MUST_ASSIGN(m_heap_characters, allocate_memory(other.m_byte_count));
             }
 
             destination_buffer = m_heap_characters;
@@ -104,7 +102,7 @@ String& String::operator=(String&& other) noexcept
         return *this;
 
     if (is_stored_on_heap())
-        release_memory(m_heap_characters, m_byte_count);
+        MUST(release_memory(m_heap_characters, m_byte_count));
 
     m_byte_count = other.m_byte_count;
     m_heap_characters = other.m_heap_characters;
@@ -128,7 +126,7 @@ String& String::operator=(StringView view)
         }
         else
         {
-            m_heap_characters = allocate_memory(source_byte_count);
+            MUST_ASSIGN(m_heap_characters, allocate_memory(source_byte_count));
             destination_buffer = m_heap_characters;
         }
     }
@@ -136,15 +134,15 @@ String& String::operator=(StringView view)
     {
         if (source_byte_count <= InlineCapacity)
         {
-            release_memory(m_heap_characters, m_byte_count);
+            MUST(release_memory(m_heap_characters, m_byte_count));
             destination_buffer = m_inline_characters;
         }
         else
         {
             if (m_byte_count != source_byte_count)
             {
-                release_memory(m_heap_characters, m_byte_count);
-                m_heap_characters = allocate_memory(source_byte_count);
+                MUST(release_memory(m_heap_characters, m_byte_count));
+                MUST_ASSIGN(m_heap_characters, allocate_memory(source_byte_count));
             }
 
             destination_buffer = m_heap_characters;
@@ -161,7 +159,7 @@ String& String::operator=(StringView view)
 String::~String()
 {
     if (is_stored_on_heap())
-        release_memory(m_heap_characters, m_byte_count);
+        MUST(release_memory(m_heap_characters, m_byte_count));
 }
 
 void String::set_internal_heap_buffer(char* heap_characters, usize byte_count)
@@ -169,7 +167,7 @@ void String::set_internal_heap_buffer(char* heap_characters, usize byte_count)
     VERIFY(byte_count > InlineCapacity);
 
     if (is_stored_on_heap())
-        release_memory(m_heap_characters, m_byte_count);
+        MUST(release_memory(m_heap_characters, m_byte_count));
 
     m_heap_characters = heap_characters;
     m_byte_count = byte_count;
@@ -179,23 +177,25 @@ void String::set_internal_inline_buffer(const char* inline_characters, usize byt
 {
     VERIFY(byte_count <= InlineCapacity);
     if (is_stored_on_heap())
-        release_memory(m_heap_characters, m_byte_count);
+        MUST(release_memory(m_heap_characters, m_byte_count));
 
     copy_memory(m_inline_characters, inline_characters, byte_count);
     m_byte_count = byte_count;
 }
 
-char* String::allocate_memory(usize byte_count)
+ErrorOr<char*> String::allocate_memory(usize byte_count)
 {
-    // TODO: Custom memory allocators.
     void* memory = ::operator new(byte_count);
+    if (!memory)
+        return Error::Code::OutOfMemory;
+
     return reinterpret_cast<char*>(memory);
 }
 
-void String::release_memory(char* characters, usize byte_count)
+ErrorOr<void> String::release_memory(char* characters, usize byte_count)
 {
-    // TODO: Custom memory allocators.
     ::operator delete(characters, byte_count);
+    return {};
 }
 
 } // namespace AT
