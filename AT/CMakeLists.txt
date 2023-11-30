@@ -14,6 +14,8 @@ set(AT_SOURCE_FILES
         Log.h
         MemoryOperations.cpp
         MemoryOperations.h
+        Pair.h
+        Span.h
         String.cpp
         String.h
         StringView.cpp
