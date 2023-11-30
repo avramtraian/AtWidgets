@@ -34,7 +34,7 @@ public:
         Vector<T> vector;
         vector.m_count = 0;
         vector.m_capacity = initial_capacity;
-        TRY_ASSIGN(vector.m_elements, allocate_memory(initial_capacity));
+        TRY_ASSIGN(vector.m_elements, try_allocate_memory(initial_capacity));
         return vector;
     }
 
@@ -50,7 +50,7 @@ public:
         : m_count(other.m_count)
     {
         m_capacity = m_count;
-        MUST_ASSIGN(m_elements, allocate_memory(m_capacity));
+        MUST_ASSIGN(m_elements, try_allocate_memory(m_capacity));
         copy_elements(m_elements, other.m_elements, m_count);
     }
 
@@ -73,9 +73,9 @@ public:
 
         if (other.m_count > m_capacity)
         {
-            MUST(release_memory(m_elements, m_capacity));
+            MUST(try_release_memory(m_elements, m_capacity));
             m_capacity = calculate_next_capacity(m_capacity, other.m_count);
-            MUST_ASSIGN(m_elements, allocate_memory(m_capacity));
+            MUST_ASSIGN(m_elements, try_allocate_memory(m_capacity));
         }
 
         m_count = other.m_count;
@@ -90,7 +90,7 @@ public:
             return *this;
 
         clear();
-        MUST(release_memory(m_elements, m_capacity));
+        MUST(try_release_memory(m_elements, m_capacity));
 
         m_elements = other.m_elements;
         m_capacity = other.m_capacity;
@@ -106,7 +106,7 @@ public:
     ALWAYS_INLINE ~Vector()
     {
         clear();
-        MUST(release_memory(m_elements, m_capacity));
+        MUST(try_release_memory(m_elements, m_capacity));
     }
 
 public:
@@ -165,7 +165,7 @@ public:
 public:
     ALWAYS_INLINE ErrorOr<T&> try_push_uninitialized(usize count = 1)
     {
-        TRY(reallocate_if_required(m_count + count));
+        TRY(try_reallocate_if_required(m_count + count));
         m_count += count;
         return m_elements[m_count - count];
     }
@@ -184,7 +184,7 @@ public:
     ALWAYS_INLINE ErrorOr<void> try_insert_range(usize slot_index, Span<const T> range)
     {
         // Ensure that the vector can store the new element count.
-        reallocate_if_required(m_count + range.count());
+        try_reallocate_if_required(m_count + range.count());
 
         if (slot_index < m_count)
         {
@@ -202,7 +202,7 @@ public:
     ALWAYS_INLINE ErrorOr<void> try_insert_range_move(usize slot_index, Span<T> range)
     {
         // Ensure that the vector can store the new element count.
-        reallocate_if_required(m_count + range.count());
+        try_reallocate_if_required(m_count + range.count());
 
         if (slot_index < m_count)
         {
@@ -240,7 +240,7 @@ public:
     ALWAYS_INLINE void clear_and_shrink()
     {
         clear();
-        MUST(release_memory(m_elements, m_capacity));
+        MUST(try_release_memory(m_elements, m_capacity));
         m_elements = nullptr;
         m_capacity = 0;
     }
@@ -248,7 +248,7 @@ public:
     ALWAYS_INLINE ErrorOr<void> try_shrink_to_fit()
     {
         if (m_count < m_capacity)
-            TRY(reallocate_to_fixed(m_count));
+            TRY(try_reallocate_to_fixed(m_count));
         return {};
     }
 
@@ -316,7 +316,7 @@ public:
     }
 
 private:
-    NODISCARD ALWAYS_INLINE static ErrorOr<T*> allocate_memory(usize capacity)
+    NODISCARD ALWAYS_INLINE static ErrorOr<T*> try_allocate_memory(usize capacity)
     {
         void* memory_block = ::operator new(capacity * sizeof(T));
         if (!memory_block)
@@ -325,7 +325,7 @@ private:
         return reinterpret_cast<T*>(memory_block);
     }
 
-    ALWAYS_INLINE static ErrorOr<void> release_memory(T* elements, usize capacity)
+    ALWAYS_INLINE static ErrorOr<void> try_release_memory(T* elements, usize capacity)
     {
         ::operator delete(elements, capacity * sizeof(T));
         return {};
@@ -359,30 +359,30 @@ private:
     }
 
 private:
-    ALWAYS_INLINE ErrorOr<void> reallocate_to_fixed(usize new_capacity)
+    ALWAYS_INLINE ErrorOr<void> try_reallocate_to_fixed(usize new_capacity)
     {
         VERIFY(new_capacity >= m_count);
 
-        TRY_ASSIGN(T * new_elements, allocate_memory(new_capacity));
+        TRY_ASSIGN(T * new_elements, try_allocate_memory(new_capacity));
         move_elements(new_elements, m_elements, m_count);
-        TRY(release_memory(m_elements, m_capacity));
+        TRY(try_release_memory(m_elements, m_capacity));
 
         m_elements = new_elements;
         m_capacity = new_capacity;
         return {};
     }
 
-    ALWAYS_INLINE ErrorOr<void> reallocate(usize required_capacity)
+    ALWAYS_INLINE ErrorOr<void> try_reallocate(usize required_capacity)
     {
         const usize new_capacity = calculate_next_capacity(m_capacity, required_capacity);
-        TRY(reallocate_to_fixed(new_capacity));
+        TRY(try_reallocate_to_fixed(new_capacity));
         return {};
     }
 
-    ALWAYS_INLINE ErrorOr<void> reallocate_if_required(usize required_capacity)
+    ALWAYS_INLINE ErrorOr<void> try_reallocate_if_required(usize required_capacity)
     {
         if (required_capacity > m_capacity)
-            TRY(reallocate(required_capacity));
+            TRY(try_reallocate(required_capacity));
 
         return {};
     }
